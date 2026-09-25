@@ -1,67 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GTS Finance</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>Porsche GTS Finance Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-  <div class="container">
+  <div class="app">
 
-    <h1>GTS Finance Calculator</h1>
+    <header class="header">
+      <h1>911 GTS Finance Calculator</h1>
+      <p class="subtitle">Moonlight Blue Metallic • GT Theme</p>
+    </header>
 
-    <!-- Mode Switch -->
-    <button id="switchMode">Switch Mode</button>
+    <!-- PDF Upload -->
+    <section class="card">
+      <h2>Upload Your Build PDF</h2>
+      <input type="file" id="pdfFile" accept="application/pdf" />
+      <button id="extractBtn">Extract MSRP</button>
+      <div id="pdfStatus" class="status"></div>
+
+      <label>Vehicle Price (MSRP)</label>
+      <input type="number" id="price" />
+    </section>
+
+    <!-- Mode Selector -->
+    <section class="card">
+      <h2>Choose Mode</h2>
+      <div class="mode-container">
+        <button id="modePayment" class="mode-btn active">Monthly Payment</</button>
+        <button id="modeDown" class="mode-btn">Down Payment Solver</button>
+      </div>
+    </section>
 
     <!-- Monthly Payment Panel -->
     <section id="paymentPanel" class="card">
-      <h2>Monthly Payment Calculator</h2>
-
-      <label>Vehicle Price</label>
-      <input type="number" id="price">
-
-      <label>Down Payment</label>
-      <input type="number" id="down">
+      <h2>Monthly Payment Inputs</h2>
 
       <label>APR (%)</label>
-      <input type="number" id="apr">
+      <input type="number" id="apr" value="5.5" step="0.1" />
 
       <label>Term (years)</label>
-      <input type="number" id="years">
+      <input type="number" id="years" value="5" />
+
+      <label>Down Payment</label>
+      <input type="number" id="down" value="40000" />
 
       <label>Trade-in Value</label>
-      <input type="number" id="trade">
+      <input type="number" id="trade" value="0" />
 
       <button id="calcPaymentBtn">Calculate Monthly Payment</button>
-
-      <div id="result"></div>
+      <div id="paymentResult" class="result"></div>
     </section>
 
     <!-- Down Payment Solver Panel -->
     <section id="downPanel" class="card hidden">
-      <h2>Down Payment Solver</h2>
+      <h2>Down Payment Solver Inputs</h2>
 
       <label>Target Monthly Payment</label>
-      <input type="number" id="targetPayment">
+      <input type="number" id="targetPayment" value="2500" />
 
       <label>APR (%)</label>
-      <input type="number" id="apr2">
+      <input type="number" id="apr2" value="5.5" step="0.1" />
 
       <label>Term (years)</label>
-      <input type="number" id="years2">
+      <input type="number" id="years2" value="5" />
 
       <label>Trade-in Value</label>
-      <input type="number" id="trade2">
+      <input type="number" id="trade2" value="0" />
 
       <button id="calcDownBtn">Calculate Required Down Payment</button>
-
-      <div id="downResult"></div>
+      <div id="downResult" class="result"></div>
     </section>
+
+    <footer class="footer">
+      <small>GTS Finance • Inspired by Porsche GT design</small>
+    </footer>
 
   </div>
 
-  <script src="script.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
