@@ -94,18 +94,20 @@ input {
 button {
   width: 100%;
   padding: 12px;
-  background: #45a29e;
+  background: #2b4d55 !important;        /* deeper GT teal for contrast */
   border: none;
   border-radius: 10px;
   margin-top: 12px;
-  font-weight: 600;
+  font-weight: 700 !important;            /* stronger legibility */
   font-size: 15px;
+  color: #ffffff !important;              /* pure white text */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.45); /* subtle glow for readability */
   cursor: pointer;
   transition: 0.2s ease;
 }
 
 button:hover {
-  background: #66c3bf;
+  background: #3a6b75 !important;         /* brighter hover */
 }
 
 /* Mode Buttons */
