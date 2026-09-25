@@ -1,99 +1,131 @@
-// -----------------------------
-// Utility Functions
-// -----------------------------
+import * as pdfjsLib from "./pdfjs/pdf.mjs";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdfjs/pdf.worker.mjs";
 
-function calculateMonthlyPayment(price, down, apr, years, trade) {
-  const loanAmount = price - down - trade;
-  const monthlyRate = apr / 100 / 12;
-  const months = years * 12;
+// PDF extraction
+async function extractTextFromPDF(file) {
+  const buffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
 
-  if (monthlyRate === 0) {
-    return loanAmount / months;
+  let text = "";
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(i => i.str).join(" ") + "\n";
   }
-
-  return (loanAmount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months));
+  return text;
 }
 
-function calculateRequiredDownPayment(targetPayment, apr, years, trade, price) {
-  const monthlyRate = apr / 100 / 12;
-  const months = years * 12;
-
-  // Solve for loan amount that produces the target payment
-  const loanAmount =
-    targetPayment * (1 - Math.pow(1 + monthlyRate, -months)) / monthlyRate;
-
-  // Down payment = price - trade - loanAmount
-  return price - trade - loanAmount;
+function extractPrice(text) {
+  const patterns = [
+    /Total\s+MSRP\*?\s*[:\-]?\s*\$([\d,]+)/i,
+    /Price\s+for\s+.*?\$([\d,]+)/i,
+    /Base\s+MSRP\s*[:\-]?\s*\$([\d,]+)/i,
+    /\$([\d,]{5,})/
+  ];
+  for (const p of patterns) {
+    const m = text.match(p);
+    if (m) return parseInt(m[1].replace(/,/g, ""), 10);
+  }
+  return null;
 }
 
-// -----------------------------
-// Mode Switching
-// -----------------------------
+// Loan math
+function monthlyPayment(P, apr, years) {
+  const r = apr / 100 / 12;
+  const n = years * 12;
+  return P * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+}
 
-document.getElementById("switchMode").addEventListener("click", () => {
+function requiredDown(price, apr, years, target, trade) {
+  const r = apr / 100 / 12;
+  const n = years * 12;
+  const loan = target * ((Math.pow(1 + r, n) - 1) / (r * Math.pow(1 + r, n)));
+  return price - loan - trade;
+}
+
+// UI logic
+document.addEventListener("DOMContentLoaded", () => {
+  const pdfFile = document.getElementById("pdfFile");
+  const extractBtn = document.getElementById("extractBtn");
+  const pdfStatus = document.getElementById("pdfStatus");
+  const priceInput = document.getElementById("price");
+
+  const modePayment = document.getElementById("modePayment");
+  const modeDown = document.getElementById("modeDown");
   const paymentPanel = document.getElementById("paymentPanel");
   const downPanel = document.getElementById("downPanel");
 
-  paymentPanel.classList.toggle("hidden");
-  downPanel.classList.toggle("hidden");
-});
+  const calcPaymentBtn = document.getElementById("calcPaymentBtn");
+  const paymentResult = document.getElementById("paymentResult");
 
-// -----------------------------
-// Monthly Payment Calculator
-// -----------------------------
+  const calcDownBtn = document.getElementById("calcDownBtn");
+  const downResult = document.getElementById("downResult");
 
-document.getElementById("calcPaymentBtn").addEventListener("click", () => {
-  const price = Number(document.getElementById("price").value);
-  const down = Number(document.getElementById("down").value);
-  const apr = Number(document.getElementById("apr").value);
-  const years = Number(document.getElementById("years").value);
-  const trade = Number(document.getElementById("trade").value);
+  // Mode switching
+  modePayment.onclick = () => {
+    modePayment.classList.add("active");
+    modeDown.classList.remove("active");
+    paymentPanel.classList.remove("hidden");
+    downPanel.classList.add("hidden");
+  };
 
-  if (!price || !years) {
-    document.getElementById("result").innerText =
-      "Please enter at least price and term.";
-    return;
-  }
+  modeDown.onclick = () => {
+    modeDown.classList.add("active");
+    modePayment.classList.remove("active");
+    downPanel.classList.remove("hidden");
+    paymentPanel.classList.add("hidden");
+  };
 
-  const payment = calculateMonthlyPayment(price, down, apr, years, trade);
+  // Extract price
+  extractBtn.onclick = async () => {
+    const file = pdfFile.files[0];
+    if (!file) return pdfStatus.textContent = "Select a PDF.";
 
-  document.getElementById("result").innerText =
-    `Estimated Monthly Payment: $${payment.toFixed(2)}`;
-});
+    pdfStatus.textContent = "Reading PDF...";
+    try {
+      const text = await extractTextFromPDF(file);
+      const price = extractPrice(text);
 
-// -----------------------------
-// Down Payment Solver
-// -----------------------------
+      if (price) {
+        priceInput.value = price;
+        pdfStatus.textContent = `Price extracted: $${price.toLocaleString()}`;
+      } else {
+        pdfStatus.textContent = "Price not found. Enter manually.";
+      }
+    } catch (e) {
+      pdfStatus.textContent = "Error reading PDF.";
+    }
+  };
 
-document.getElementById("calcDownBtn").addEventListener("click", () => {
-  const targetPayment = Number(document.getElementById("targetPayment").value);
-  const apr = Number(document.getElementById("apr2").value);
-  const years = Number(document.getElementById("years2").value);
-  const trade = Number(document.getElementById("trade2").value);
+  // Monthly payment
+  calcPaymentBtn.onclick = () => {
+    const price = +priceInput.value;
+    const apr = +document.getElementById("apr").value;
+    const years = +document.getElementById("years").value;
+    const down = +document.getElementById("down").value;
+    const trade = +document.getElementById("trade").value;
 
-  // You MUST have the vehicle price to solve for down payment
-  const price = Number(document.getElementById("price").value);
+    const loan = price - down - trade;
+    const m = monthlyPayment(loan, apr, years);
 
-  if (!price) {
-    document.getElementById("downResult").innerText =
-      "Enter the vehicle price in the Monthly Payment panel first.";
-    return;
-  }
+    paymentResult.innerHTML = `
+      Monthly Payment: $${m.toFixed(2)}<br>
+      Loan Amount: $${loan.toFixed(2)}
+    `;
+  };
 
-  if (!targetPayment || !years) {
-    document.getElementById("downResult").innerText =
-      "Please enter target payment and term.";
-    return;
-  }
+  // Down payment solver
+  calcDownBtn.onclick = () => {
+    const price = +priceInput.value;
+    const apr = +document.getElementById("apr2").value;
+    const years = +document.getElementById("years2").value;
+    const trade = +document.getElementById("trade2").value;
+    const target = +document.getElementById("targetPayment").value;
 
-  const requiredDown = calculateRequiredDownPayment(
-    targetPayment,
-    apr,
-    years,
-    trade,
-    price
-  );
+    const down = requiredDown(price, apr, years, target, trade);
 
-  document.getElementById("downResult").innerText =
-    `Required Down Payment: $${requiredDown.toFixed(2)}`;
+    downResult.innerHTML = `
+      Required Down Payment: $${down.toFixed(2)}
+    `;
+  };
 });
