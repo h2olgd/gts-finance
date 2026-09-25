@@ -66,6 +66,11 @@ body {
   display: none !important;
 }
 
+#downPanel {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
 /* Inputs */
 label {
   display: block;
